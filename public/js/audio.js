@@ -99,9 +99,9 @@ const audio = (() => {
   }
 
   // Plays a file on a channel. A new sound on the same channel cuts off the old
-  // one; different channels overlap. Resolves true when it finishes playing,
-  // false if it couldn't play.
-  async function play(url, channel = "main") {
+  // one; different channels overlap. `volume` is 0–1. Resolves true when it
+  // finishes playing, false if it couldn't play.
+  async function play(url, channel = "main", volume = 1) {
     if (muted || !url) return false;
     const c = context();
     if (!c) return false;
@@ -120,7 +120,13 @@ const audio = (() => {
     stop(channel);
     const src = c.createBufferSource();
     src.buffer = buffer;
-    src.connect(c.destination);
+    if (volume === 1) {
+      src.connect(c.destination);
+    } else {
+      const gain = c.createGain();
+      gain.gain.value = volume;
+      src.connect(gain).connect(c.destination);
+    }
     channels.set(channel, src);
     return new Promise((resolve) => {
       src.onended = () => {

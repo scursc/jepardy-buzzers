@@ -102,9 +102,12 @@ fetch("/api/info")
 // Every buzz plays that player's sound. Each player has their own channel, so
 // spamming restarts their sound instead of stacking copies, while different
 // players' sounds overlap.
+const LATER_BUZZ_VOLUME = 0.9; // buzzes after the first are 10% quieter
 
 socket.on("buzzed", (entry) => {
-  if (entry.sound) audio.play(soundUrl(entry.sound), `player:${entry.playerId}`);
+  // Later buzzes play a little quieter so the first one stands out.
+  const volume = entry.isFirst ? 1 : LATER_BUZZ_VOLUME;
+  if (entry.sound) audio.play(soundUrl(entry.sound), `player:${entry.playerId}`, volume);
   if (!entry.isFirst) return;
   // A new first buzz (e.g. right after a wrong answer) replaces the verdict popup.
   clearTimeout(judgeTimeout);
