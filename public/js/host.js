@@ -134,6 +134,75 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+// ----- audio settings (applied on the game screen) -----
+
+const AUDIO_DEFAULTS = {
+  buzzVolume: 1,
+  laterBuzzVolume: 0.9,
+  effectsVolume: 1,
+  laterBuzzSounds: true,
+  timerEndSound: true,
+};
+const audioPanel = $("#audio-panel");
+const audioToggle = $("#audio-toggle");
+
+function setAudioPanelOpen(open) {
+  audioPanel.hidden = !open;
+  audioToggle.setAttribute("aria-expanded", String(open));
+}
+audioToggle.addEventListener("click", () => setAudioPanelOpen(audioPanel.hidden));
+document.addEventListener("click", (e) => {
+  if (!audioPanel.hidden && !e.target.closest(".settings-wrap")) setAudioPanelOpen(false);
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") setAudioPanelOpen(false);
+});
+
+// Sliders send while dragging, but at most every 150 ms.
+let audioSendTimer = null;
+let pendingAudio = {};
+function sendAudio(patch) {
+  Object.assign(pendingAudio, patch);
+  if (audioSendTimer) return;
+  audioSendTimer = setTimeout(() => {
+    audioSendTimer = null;
+    const toSend = pendingAudio;
+    pendingAudio = {};
+    act("host:audio", toSend);
+    // Remembered for the next room this browser creates (see home.js).
+    store.set("hostAudio", JSON.stringify({ ...(state && state.audio), ...toSend }));
+  }, 150);
+}
+
+for (const input of audioPanel.querySelectorAll("[data-audio]")) {
+  const key = input.dataset.audio;
+  input.addEventListener("input", () => {
+    if (input.type === "checkbox") return sendAudio({ [key]: input.checked });
+    input.nextElementSibling.textContent = `${input.value}%`;
+    sendAudio({ [key]: Number(input.value) / 100 });
+  });
+}
+for (const btn of audioPanel.querySelectorAll("[data-audio-test]")) {
+  btn.addEventListener("click", () => act("host:audioTest", { kind: btn.dataset.audioTest }));
+}
+$("#audio-reset").addEventListener("click", () => sendAudio({ ...AUDIO_DEFAULTS }));
+
+function renderAudio(audio) {
+  if (!audio) return;
+  for (const input of audioPanel.querySelectorAll("[data-audio]")) {
+    if (input === document.activeElement && input.type === "range") continue; // don't fight a drag
+    const value = audio[input.dataset.audio];
+    if (input.type === "checkbox") {
+      input.checked = value;
+    } else {
+      input.value = Math.round(value * 100);
+      input.nextElementSibling.textContent = `${input.value}%`;
+    }
+  }
+  // "later buzzes" volume means nothing when later buzzes are silent.
+  audioPanel.querySelector('[data-audio="laterBuzzVolume"]').disabled = !audio.laterBuzzSounds;
+}
+
 // ----- rendering -----
 
 socket.on("state", (s) => {
@@ -143,6 +212,7 @@ socket.on("state", (s) => {
 
 function render() {
   const s = state;
+  renderAudio(s.audio);
 
   // Status
   const status = $("#status");

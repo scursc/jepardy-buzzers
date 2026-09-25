@@ -725,6 +725,49 @@ input[type="number"].input {
   font-size: 12px;
 }
 
+/* ---------- audio settings popover ---------- */
+
+.settings-wrap {
+  position: relative;
+}
+.settings-panel {
+  position: absolute;
+  top: calc(100% + 18px);
+  right: 0;
+  z-index: 50;
+  width: min(340px, calc(100vw - 32px));
+  gap: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+.settings-panel[hidden] {
+  display: none;
+}
+.setting {
+  display: grid;
+  grid-template-columns: 15ch 1fr 5ch;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.setting input[type="range"] {
+  width: 100%;
+  accent-color: var(--green);
+}
+.setting input[type="range"]:disabled {
+  opacity: 0.35;
+}
+.setting-value {
+  text-align: right;
+  color: var(--bright);
+  font-variant-numeric: tabular-nums;
+}
+.setting-hint {
+  margin-top: -6px;
+}
+.settings-panel .toggle {
+  font-size: 13px;
+}
+
 /* ---------- first / order / feed ---------- */
 
 .first-line {

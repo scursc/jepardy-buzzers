@@ -162,8 +162,8 @@ io.on("connection", (socket) => {
     };
   });
 
-  handle(socket, "host:create", ({ maxBuzzers }) => {
-    const room = rooms.createRoom(maxBuzzers);
+  handle(socket, "host:create", ({ maxBuzzers, audio }) => {
+    const room = rooms.createRoom(maxBuzzers, audio);
     enter(room, "host");
     broadcast(room);
     console.log(`Room ${room.code} created with ${room.maxBuzzers} buzzers`);
@@ -239,6 +239,15 @@ io.on("connection", (socket) => {
     "host:toggleLockOnTimerEnd",
     asHost((room) => {
       room.lockOnTimerEnd = !room.lockOnTimerEnd;
+    })
+  );
+  handle(socket, "host:audio", asHost((room, patch) => rooms.setAudio(room, patch)));
+  // Lets the host hear the current settings on the game screen from afar.
+  handle(
+    socket,
+    "host:audioTest",
+    asHost((room, { kind }) => {
+      io.to(room.code).emit("audio:test", { kind: kind === "effects" ? "effects" : "buzz" });
     })
   );
   handle(socket, "host:setMaxBuzzers", asHost((room, { n }) => rooms.setMaxBuzzers(room, n)));

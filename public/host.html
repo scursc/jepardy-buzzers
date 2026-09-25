@@ -23,6 +23,45 @@
       <span class="status" id="status">locked</span>
       <span class="topbar-item hide-sm" id="join-hint"></span>
       <div class="topbar-right">
+        <div class="settings-wrap">
+          <button type="button" class="btn btn-sm" id="audio-toggle" aria-expanded="false" aria-controls="audio-panel" title="Audio settings">⚙ audio</button>
+          <!-- Audio settings for the game screen; changes apply there live. -->
+          <section class="box settings-panel" id="audio-panel" hidden>
+            <h2 class="box-title">game screen audio</h2>
+            <label class="setting">
+              <span>buzz volume</span>
+              <input type="range" min="0" max="100" step="5" data-audio="buzzVolume" />
+              <output class="setting-value"></output>
+            </label>
+            <label class="setting">
+              <span>later buzzes</span>
+              <input type="range" min="0" max="100" step="5" data-audio="laterBuzzVolume" />
+              <output class="setting-value"></output>
+            </label>
+            <p class="dim small setting-hint">later buzzes, as a % of the first buzz's volume</p>
+            <label class="setting">
+              <span>effects volume</span>
+              <input type="range" min="0" max="100" step="5" data-audio="effectsVolume" />
+              <output class="setting-value"></output>
+            </label>
+            <p class="dim small setting-hint">wrong, correct and timer-end sounds</p>
+            <label class="toggle">
+              <input type="checkbox" data-audio="laterBuzzSounds" />
+              <span class="toggle-box"></span>
+              <span>play sounds for later buzzes</span>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" data-audio="timerEndSound" />
+              <span class="toggle-box"></span>
+              <span>play the timer-end sound</span>
+            </label>
+            <div class="row">
+              <button type="button" class="btn btn-sm" data-audio-test="buzz">test buzz</button>
+              <button type="button" class="btn btn-sm" data-audio-test="effects">test effect</button>
+              <button type="button" class="btn btn-sm" id="audio-reset">reset</button>
+            </div>
+          </section>
+        </div>
         <button type="button" class="btn btn-danger btn-sm" id="close-room">close room</button>
       </div>
     </header>

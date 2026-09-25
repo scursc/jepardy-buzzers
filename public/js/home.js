@@ -38,7 +38,12 @@ $("#stepper").addEventListener("click", (e) => {
 $("#create-btn").addEventListener("click", async (e) => {
   const btn = e.currentTarget;
   btn.disabled = true;
-  const res = await send("host:create", { maxBuzzers: buzzerCount });
+  // Reuse this browser's last audio settings (saved by the host page).
+  let audio = null;
+  try {
+    audio = JSON.parse(store.get("hostAudio"));
+  } catch {}
+  const res = await send("host:create", { maxBuzzers: buzzerCount, audio });
   if (res.error) {
     toast(res.error, "error");
     btn.disabled = false;

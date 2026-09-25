@@ -55,7 +55,38 @@ function clampBuzzers(n) {
   return Math.min(MAX_BUZZERS, Math.max(MIN_BUZZERS, n));
 }
 
-function createRoom(maxBuzzers) {
+// ---------- audio settings ----------
+// Set by the host, applied by the game screen. Volumes are 0–1; laterBuzzVolume
+// is relative to buzzVolume (0.9 = later buzzes 10% quieter than the first).
+
+const DEFAULT_AUDIO = {
+  buzzVolume: 1,
+  laterBuzzVolume: 0.9,
+  effectsVolume: 1,
+  laterBuzzSounds: true,
+  timerEndSound: true,
+};
+
+// Keeps only known keys with valid values; anything else falls back to `base`.
+function cleanAudio(patch, base = DEFAULT_AUDIO) {
+  const out = { ...base };
+  if (!patch || typeof patch !== "object") return out;
+  for (const key of ["buzzVolume", "laterBuzzVolume", "effectsVolume"]) {
+    const v = Number(patch[key]);
+    if (patch[key] !== undefined && Number.isFinite(v)) out[key] = Math.min(1, Math.max(0, v));
+  }
+  for (const key of ["laterBuzzSounds", "timerEndSound"]) {
+    if (typeof patch[key] === "boolean") out[key] = patch[key];
+  }
+  return out;
+}
+
+function setAudio(room, patch) {
+  room.audio = cleanAudio(patch, room.audio);
+  return { ok: true, audio: room.audio };
+}
+
+function createRoom(maxBuzzers, audio) {
   const room = {
     code: newCode(),
     hostToken: randomToken(),
@@ -73,6 +104,7 @@ function createRoom(maxBuzzers) {
     rearmAt: null, // after a wrong answer, when the buzzers switch back on
     timer: { durationMs: DEFAULT_TIMER_MS, remainingMs: DEFAULT_TIMER_MS, endsAt: null },
     lockOnTimerEnd: true,
+    audio: cleanAudio(audio), // the host's last-used settings, if sent
     createdAt: Date.now(),
   };
   rooms.set(room.code, room);
@@ -400,6 +432,7 @@ function publicState(room, now = Date.now()) {
     armed: room.armed,
     round: room.round,
     lockOnTimerEnd: room.lockOnTimerEnd,
+    audio: room.audio,
     hostConnected: room.hostSockets > 0,
     players: room.players.map((p) => ({
       id: p.id,
@@ -444,6 +477,8 @@ module.exports = {
   clearFeed,
   judge,
   checkRearm,
+  setAudio,
+  DEFAULT_AUDIO,
   REARM_DELAY_MS,
   addChat,
   timerSet,

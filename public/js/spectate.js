@@ -101,13 +101,29 @@ fetch("/api/info")
 // ----- live events -----
 // Every buzz plays that player's sound. Each player has their own channel, so
 // spamming restarts their sound instead of stacking copies, while different
-// players' sounds overlap.
-const LATER_BUZZ_VOLUME = 0.9; // buzzes after the first are 10% quieter
+// players' sounds overlap. Volumes come from the host's audio settings.
+
+// The room's audio settings (host page ⚙ audio); defaults until the first state.
+function audioSettings() {
+  return (state && state.audio) || {
+    buzzVolume: 1,
+    laterBuzzVolume: 0.9,
+    effectsVolume: 1,
+    laterBuzzSounds: true,
+    timerEndSound: true,
+  };
+}
+
+function playEffect(url, channel) {
+  audio.play(url, channel, audioSettings().effectsVolume);
+}
 
 socket.on("buzzed", (entry) => {
-  // Later buzzes play a little quieter so the first one stands out.
-  const volume = entry.isFirst ? 1 : LATER_BUZZ_VOLUME;
-  if (entry.sound) audio.play(soundUrl(entry.sound), `player:${entry.playerId}`, volume);
+  const a = audioSettings();
+  // Later buzzes can be quieter than the first (or silent) so the first stands out.
+  const volume = entry.isFirst ? a.buzzVolume : a.buzzVolume * a.laterBuzzVolume;
+  const audible = entry.isFirst || a.laterBuzzSounds;
+  if (entry.sound && audible) audio.play(soundUrl(entry.sound), `player:${entry.playerId}`, volume);
   if (!entry.isFirst) return;
   // A new first buzz (e.g. right after a wrong answer) replaces the verdict popup.
   clearTimeout(judgeTimeout);
@@ -118,7 +134,18 @@ socket.on("buzzed", (entry) => {
   stage.classList.add("flash");
 });
 
-socket.on("timer:end", () => audio.play(timerEndUrl, "timer"));
+socket.on("timer:end", () => {
+  if (audioSettings().timerEndSound) playEffect(timerEndUrl, "timer");
+});
+
+// The host pressed "test" in their audio settings.
+socket.on("audio:test", ({ kind }) => {
+  if (kind === "effects") {
+    playEffect(verdictUrls.wrong || verdictUrls.correct || timerEndUrl, "verdict");
+  } else if (testSoundUrl) {
+    audio.play(testSoundUrl, "test", audioSettings().buzzVolume);
+  }
+});
 
 // The host marked an answer: show CORRECT / WRONG for a few seconds.
 const JUDGE_POPUP_MS = 4000;
@@ -126,7 +153,7 @@ let judgeTimeout = null;
 
 socket.on("judged", ({ verdict, name, color, popupMs }) => {
   audio.stop(); // cut off buzz sounds so the verdict is heard clearly
-  audio.play(verdictUrls[verdict], "verdict");
+  playEffect(verdictUrls[verdict], "verdict");
   const popup = $("#judge-popup");
   popup.classList.toggle("correct", verdict === "correct");
   popup.classList.toggle("wrong", verdict === "wrong");
