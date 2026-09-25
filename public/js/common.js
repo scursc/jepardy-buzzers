@@ -84,6 +84,15 @@ function textBar(fraction, width = 24) {
   return "█".repeat(filled) + "░".repeat(width - filled);
 }
 
+// The address players should open, shown as "join at …". Whatever address this
+// page was opened with works for everyone (Wi-Fi IP or public domain), except
+// localhost, which only works on this PC, so then use the Wi-Fi address.
+function joinAddress(lanUrls) {
+  const local = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
+  const url = local && lanUrls && lanUrls[0] ? lanUrls[0] : location.origin;
+  return url.replace(/^https?:\/\//, "");
+}
+
 function formatOffset(ms) {
   return `+${(ms / 1000).toFixed(2)}s`;
 }
@@ -100,11 +109,19 @@ function toast(message, kind = "info") {
   setTimeout(() => t.remove(), 3200);
 }
 
-// Players ranked by their first press this round.
+// Players ranked by their first press this round. A wrong answer
+// (an entry with resetsOrder) starts the ranking over.
 function buzzOrder(feed) {
+  let start = 0;
+  for (let i = feed.length - 1; i >= 0; i--) {
+    if (feed[i].resetsOrder) {
+      start = i + 1;
+      break;
+    }
+  }
   const seen = new Set();
   const order = [];
-  for (const e of feed) {
+  for (const e of feed.slice(start)) {
     if (e.type !== "buzz" || seen.has(e.playerId)) continue;
     seen.add(e.playerId);
     order.push(e);

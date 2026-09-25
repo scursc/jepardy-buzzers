@@ -10,22 +10,17 @@ let peeked = null; // last room:peek result for the current code
 
 // ----- sound preview (plays on this device only) -----
 
-let preview = null;
 let previewRow = null;
 
-function playPreview(sound, row) {
-  if (preview) {
-    preview.pause();
-    previewRow?.classList.remove("playing");
-  }
-  preview = new Audio(sound.url);
+// Called from the row's tap, so the browser allows sound to start.
+async function playPreview(sound, row) {
+  audio.unlock();
+  if (previewRow) previewRow.classList.remove("playing");
   previewRow = row;
   row.classList.add("playing");
-  preview.addEventListener("ended", () => row.classList.remove("playing"));
-  preview.play().catch(() => {
-    row.classList.remove("playing");
-    toast("couldn't play that sound", "error");
-  });
+  const played = await audio.play(sound.url);
+  row.classList.remove("playing");
+  if (!played) toast("couldn't play that sound on this browser", "error");
 }
 
 // ----- pickers -----

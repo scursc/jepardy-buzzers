@@ -5,6 +5,7 @@ function feedItem(entry) {
   if (entry.type === "event") {
     return el("li", { class: "feed-item feed-event", "data-id": entry.id }, entry.text.toLowerCase());
   }
+  if (entry.type === "chat") return chatItem(entry);
   return el(
     "li",
     {
@@ -21,6 +22,23 @@ function feedItem(entry) {
       entry.pressNumber > 1 ? el("span", { class: "feed-press" }, ` ×${entry.pressNumber}`) : null
     ),
     el("span", { class: "feed-time" }, entry.isFirst ? "first" : formatOffset(entry.offsetMs))
+  );
+}
+
+// Chat is user input, so it only ever goes in as text (el() uses text nodes).
+function chatItem(entry) {
+  const isHost = entry.from === "host";
+  return el(
+    "li",
+    {
+      class: `feed-item feed-chat${isHost ? " from-host" : ""}`,
+      "data-id": entry.id,
+      style: entry.color ? { "--player": entry.color } : null,
+    },
+    el("span", { class: "feed-at" }, formatTimeOfDay(entry.at)),
+    el("span", { class: "dot" }),
+    el("span", { class: "chat-line" }, el("span", { class: "chat-name" }, `${entry.name}:`), " ", entry.text),
+    el("span")
   );
 }
 

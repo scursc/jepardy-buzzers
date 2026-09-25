@@ -48,7 +48,7 @@ fetch("/api/info")
   .then((r) => r.json())
   .then(({ urls, sounds }) => {
     soundNames = new Map(sounds.map((s) => [s.id, s.name]));
-    const url = (urls[0] || location.origin).replace(/^https?:\/\//, "");
+    const url = joinAddress(urls);
     $("#join-hint").replaceChildren("join at ", el("b", {}, url));
     if (state) render();
   })
@@ -70,6 +70,12 @@ function toggleArm() {
 function toggleTimer() {
   if (!state) return;
   act(state.timer.running ? "host:timer:pause" : "host:timer:start");
+}
+
+// Marks the first buzz "correct" or "wrong". Wrong re-arms the buzzers.
+function judge(verdict) {
+  if (!state || state.judged || !buzzOrder(state.feed)[0]) return;
+  act("host:judge", { verdict });
 }
 
 $("#arm-btn").addEventListener("click", toggleArm);
@@ -98,6 +104,15 @@ $("#max-stepper").addEventListener("click", (e) => {
   if (btn && state) act("host:setMaxBuzzers", { n: state.maxBuzzers + Number(btn.dataset.step) });
 });
 
+$("#chat-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const input = $("#chat-input");
+  const text = input.value.trim();
+  if (!text) return;
+  const res = await act("chat:send", { text });
+  if (!res.error) input.value = "";
+});
+
 $("#close-room").addEventListener("click", async () => {
   if (!confirm("Close this room for everyone?")) return;
   await act("host:closeRoom");
@@ -112,6 +127,10 @@ document.addEventListener("keydown", (e) => {
     act("host:resetRound");
   } else if (e.key === "t" || e.key === "T") {
     toggleTimer();
+  } else if (e.key === "c" || e.key === "C") {
+    judge("correct");
+  } else if (e.key === "w" || e.key === "W") {
+    judge("wrong");
   }
 });
 
@@ -127,7 +146,7 @@ function render() {
 
   // Status
   const status = $("#status");
-  status.textContent = s.armed ? "armed" : "locked";
+  status.textContent = s.armed ? "armed" : s.rearming ? "re-arming" : "locked";
   status.classList.toggle("armed", s.armed);
   const armBtn = $("#arm-btn");
   armBtn.textContent = s.armed ? "lock" : "arm";
@@ -192,6 +211,14 @@ function render() {
           el("span", {}, "> first"),
           el("span", { class: "first-name", style: { "--player": first.color } }, first.name),
           el("span", { class: "dim" }, `buzzer ${first.slot}`),
+          s.judged
+            ? el("span", { class: "judge-done" }, `> ${first.name} — correct`)
+            : el(
+                "span",
+                { class: "judge-btns" },
+                el("button", { type: "button", class: "btn btn-sm btn-primary", onclick: () => judge("correct") }, "correct"),
+                el("button", { type: "button", class: "btn btn-sm btn-danger", onclick: () => judge("wrong") }, "wrong")
+              ),
         ]
       : [s.armed ? "waiting for a buzz" : "buzzers locked", el("span", { class: "cursor" }, "▌")])
   );

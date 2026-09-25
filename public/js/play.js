@@ -88,8 +88,9 @@ buzzer.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   press();
 });
-// Keyboard players (laptops): Space or Enter.
+// Keyboard players (laptops): Space or Enter. Typing in chat never buzzes.
 document.addEventListener("keydown", (e) => {
+  if (e.target.closest("input, textarea, .chat-form")) return;
   if ((e.code === "Space" || e.key === "Enter") && !e.repeat) {
     e.preventDefault();
     press();
@@ -97,6 +98,18 @@ document.addEventListener("keydown", (e) => {
 });
 // Stop long-press menus on phones.
 buzzer.addEventListener("contextmenu", (e) => e.preventDefault());
+
+// ----- chat -----
+
+$("#chat-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const input = $("#chat-input");
+  const text = input.value.trim();
+  if (!text) return;
+  const res = await send("chat:send", { text });
+  if (res.error) toast(res.error.toLowerCase(), "error");
+  else input.value = "";
+});
 
 // ----- rendering -----
 
@@ -113,7 +126,15 @@ function render() {
   const order = buzzOrder(s.feed);
   const myRank = order.findIndex((e) => e.playerId === me.id);
   const mine = order[myRank];
-  const myPresses = s.feed.filter((e) => e.type === "buzz" && e.playerId === me.id).length;
+  // Count presses since the last wrong answer, matching how buzzOrder ranks.
+  let resetAt = -1;
+  s.feed.forEach((e, i) => {
+    if (e.resetsOrder) resetAt = i;
+  });
+  const myPresses = s.feed
+    .slice(resetAt + 1)
+    .filter((e) => e.type === "buzz" && e.playerId === me.id).length;
+  const lastVerdict = [...s.feed].reverse().find((e) => e.verdict);
 
   buzzer.classList.toggle("armed", s.armed);
   buzzer.classList.toggle("locked", !s.armed);
@@ -128,9 +149,16 @@ function render() {
   } else if (myRank > 0) {
     label.textContent = `#${myRank + 1}`;
     status.textContent = `${formatOffset(mine.offsetMs)} behind ${order[0].name}`;
+  } else if (s.rearming) {
+    label.textContent = "WAIT";
+    status.textContent = "wrong answer · buzzers re-arm in a moment";
   } else if (s.armed) {
     label.textContent = "BUZZ";
-    status.textContent = order.length ? `${order[0].name} was first · you can still buzz` : "go";
+    status.textContent = order.length
+      ? `${order[0].name} was first · you can still buzz`
+      : lastVerdict && lastVerdict.verdict === "wrong"
+        ? "wrong — buzzers re-armed"
+        : "go";
   } else {
     label.textContent = "LOCKED";
     status.textContent = order.length

@@ -922,20 +922,10 @@ input[type="number"].input {
   flex-direction: column;
 }
 
-.sound-gate {
-  position: fixed;
-  inset: 0;
-  z-index: 150;
-  background: var(--bg);
-  display: grid;
-  place-items: center;
-  padding: 16px;
-}
-.sound-gate-inner {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  max-width: 460px;
+.sound-hint {
+  color: var(--amber);
+  font-size: 12px;
+  animation: blink 1.4s steps(1) infinite;
 }
 
 .spectate-grid {
@@ -1005,6 +995,49 @@ input[type="number"].input {
 }
 
 /* ==========================================================================
+   Chat
+   ========================================================================== */
+
+.chat-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.chat-form .input {
+  font-size: 13px;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.page-play .chat-form {
+  flex: none;
+}
+.page-play .chat-form .input {
+  font-size: 16px; /* 16px stops iOS zooming in on focus */
+}
+
+/* Chat text can be long: let it wrap instead of pushing the line sideways. */
+.feed-chat {
+  align-items: start;
+  white-space: normal;
+  color: var(--text);
+}
+.feed-chat .chat-line {
+  overflow-wrap: anywhere;
+}
+.feed-chat .chat-name {
+  color: var(--dim);
+}
+.feed-chat .dot {
+  margin-top: 0.4em;
+}
+.feed-chat.from-host .dot {
+  background: var(--faint);
+}
+.feed-chat.from-host .chat-name {
+  color: var(--amber);
+}
+
+/* ==========================================================================
    Animations
    ========================================================================== */
 
@@ -1027,6 +1060,73 @@ input[type="number"].input {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* Judge popup
+   Host: correct / wrong buttons on the first line.
+   Game screen: CORRECT / WRONG box over everything for a few seconds. */
+
+.judge-btns {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+.judge-btns .btn-primary {
+  border-color: var(--green);
+}
+.judge-btns .btn-danger {
+  border-color: var(--red);
+}
+.judge-done {
+  margin-left: auto;
+  color: var(--green);
+}
+
+.judge-popup {
+  position: fixed;
+  inset: 0;
+  z-index: 140; /* under the connection banner */
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(11, 11, 11, 0.82);
+  pointer-events: none;
+}
+.judge-popup[hidden] {
+  display: none;
+}
+.judge-box {
+  --verdict: var(--text);
+  max-width: 100%;
+  padding: clamp(20px, 4vw, 48px) clamp(24px, 6vw, 80px);
+  border: 2px solid var(--verdict);
+  background: var(--bg);
+  text-align: center;
+  font-family: inherit;
+}
+.judge-popup.correct .judge-box {
+  --verdict: var(--green);
+}
+.judge-popup.wrong .judge-box {
+  --verdict: var(--red);
+}
+.judge-verdict {
+  font-size: clamp(48px, 14vw, 200px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--verdict);
+}
+.judge-verdict::before {
+  content: "> ";
+  color: var(--faint);
+}
+.judge-name {
+  margin-top: 12px;
+  font-size: clamp(20px, 4vw, 48px);
+  font-weight: 700;
+  color: var(--player, var(--text));
+  word-break: break-word;
 }
 
 /* ==========================================================================

@@ -7,10 +7,13 @@ const http = require("http");
 const express = require("express");
 const { Server } = require("socket.io");
 const rooms = require("./rooms");
-const { loadSounds, findTimerEndUrl } = require("./sounds");
+const { loadSounds, findTimerEndUrl, findSfxUrl } = require("./sounds");
 
 const PORT = Number(process.env.PORT) || 3000;
 const ROOM_IDLE_TIMEOUT_MS = 10 * 60 * 1000; // delete a room 10 min after the host leaves
+// Remove a player this long after their last device disconnects, so a page
+// refresh or a brief Wi-Fi drop doesn't kick anyone.
+const PLAYER_LEAVE_GRACE_MS = Number(process.env.PLAYER_LEAVE_GRACE_MS) || 10_000;
 
 const app = express();
 const server = http.createServer(app);
@@ -28,17 +31,37 @@ function lanAddresses() {
   return out;
 }
 
+// Requests through a Cloudflare Tunnel carry Cloudflare's headers. Those come
+// from the public internet, so they never get to see the home network address.
+function viaCloudflare(req) {
+  return Boolean(req.headers["cf-connecting-ip"] || req.headers["cf-ray"]);
+}
+
 // The host page uses this to show players which address to open.
 app.get("/api/info", (req, res) => {
   res.json({
-    urls: lanAddresses().map((ip) => `http://${ip}:${PORT}`),
+    urls: viaCloudflare(req) ? [] : lanAddresses().map((ip) => `http://${ip}:${PORT}`),
     sounds: loadSounds(),
     timerEndUrl: findTimerEndUrl(),
+    wrongUrl: findSfxUrl("wrong"),
+    correctUrl: findSfxUrl("correct"),
   });
 });
 
 function broadcast(room) {
   io.to(room.code).emit("state", rooms.publicState(room));
+}
+
+// Starts the countdown to remove a player with no devices left. Rejoining,
+// a kick or closing the room clears it (see rooms.clearLeaveTimer).
+function scheduleLeave(room, player) {
+  rooms.clearLeaveTimer(player);
+  player.leaveTimer = setTimeout(() => {
+    player.leaveTimer = null;
+    if (rooms.getRoom(room.code) !== room || player.sockets > 0) return;
+    if (!rooms.removePlayer(room, player.id, "left")) return;
+    broadcast(room);
+  }, PLAYER_LEAVE_GRACE_MS);
 }
 
 // Wraps a handler so it always replies through the ack callback, if one was given.
@@ -77,7 +100,10 @@ io.on("connection", (socket) => {
       room.hostLeftAt = null;
     } else if (role === "player") {
       const p = room.players.find((pl) => pl.id === playerId);
-      if (p) p.sockets += 1;
+      if (p) {
+        p.sockets += 1;
+        rooms.clearLeaveTimer(p);
+      }
     }
   }
 
@@ -90,7 +116,10 @@ io.on("connection", (socket) => {
       if (room.hostSockets === 0) room.hostLeftAt = Date.now();
     } else if (role === "player") {
       const p = room.players.find((pl) => pl.id === playerId);
-      if (p) p.sockets = Math.max(0, p.sockets - 1);
+      if (p) {
+        p.sockets = Math.max(0, p.sockets - 1);
+        if (p.sockets === 0) scheduleLeave(room, p);
+      }
     }
     socket.leave(room.code);
     socket.data = {};
@@ -222,6 +251,24 @@ io.on("connection", (socket) => {
   );
   handle(
     socket,
+    "host:judge",
+    asHost((room, { verdict }) => {
+      const result = rooms.judge(room, verdict);
+      if (result.error) return result;
+      const { name, color, slot } = result.player;
+      // The game screen shows a popup and plays the verdict sound.
+      io.to(room.code).emit("judged", {
+        verdict: result.verdict,
+        name,
+        color,
+        slot,
+        popupMs: rooms.REARM_DELAY_MS, // buzzers re-arm when a WRONG popup closes
+      });
+      return result;
+    })
+  );
+  handle(
+    socket,
     "host:closeRoom",
     asHost((room) => {
       io.to(room.code).emit("roomClosed");
@@ -236,6 +283,25 @@ io.on("connection", (socket) => {
     })
   );
 
+  // ----- chat -----
+
+  handle(socket, "chat:send", ({ text }) => {
+    const room = currentRoom();
+    const { role, playerId } = socket.data;
+    let sender;
+    if (room && role === "player") {
+      const p = room.players.find((pl) => pl.id === playerId);
+      if (p) sender = { from: "player", playerId, name: p.name, color: p.color };
+    } else if (room && role === "host") {
+      sender = { from: "host", name: "host", color: null };
+    }
+    if (!sender) return { error: "Not in a room." };
+    const result = rooms.addChat(room, { ...sender, text });
+    if (result.error) return result;
+    broadcast(room);
+    return result;
+  });
+
   socket.on("disconnect", () => leave());
 });
 
@@ -247,6 +313,7 @@ setInterval(() => {
       io.to(room.code).emit("timer:end");
       broadcast(room);
     }
+    if (rooms.checkRearm(room, now)) broadcast(room);
     if (room.hostSockets === 0 && room.hostLeftAt && now - room.hostLeftAt > ROOM_IDLE_TIMEOUT_MS) {
       io.to(room.code).emit("roomClosed");
       rooms.deleteRoom(room.code);
@@ -257,9 +324,9 @@ setInterval(() => {
 
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`\nBuzzers running!`);
-  console.log(`  On this PC:     http://localhost:${PORT}`);
+  console.log(`  host:     http://localhost:${PORT}`);
   for (const ip of lanAddresses()) {
-    console.log(`  On your Wi-Fi:  http://${ip}:${PORT}`);
+    console.log(`  on wifi:  http://${ip}:${PORT}`);
   }
   console.log("");
 });

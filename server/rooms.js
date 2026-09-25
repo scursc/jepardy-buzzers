@@ -24,7 +24,10 @@ const MAX_BUZZERS = 12;
 const MAX_NAME_LENGTH = 20;
 const BUZZ_COOLDOWN_MS = 80; // stops a single player flooding the feed
 const MAX_FEED_ENTRIES = 500;
+const MAX_CHAT_LENGTH = 200;
+const CHAT_COOLDOWN_MS = 500;
 const DEFAULT_TIMER_MS = 30_000;
+const REARM_DELAY_MS = 4000; // matches how long the WRONG popup stays up
 
 // Letters that are hard to confuse with each other or with numbers.
 const CODE_LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ";
@@ -66,6 +69,8 @@ function createRoom(maxBuzzers) {
     feedSeq: 0,
     feedEpoch: 0, // bumped whenever the feed is wiped, so clients know to start over
     firstBuzzAt: null,
+    judgedFirstAt: null, // firstBuzzAt of the buzz the host marked correct
+    rearmAt: null, // after a wrong answer, when the buzzers switch back on
     timer: { durationMs: DEFAULT_TIMER_MS, remainingMs: DEFAULT_TIMER_MS, endsAt: null },
     lockOnTimerEnd: true,
     createdAt: Date.now(),
@@ -80,6 +85,8 @@ function getRoom(code) {
 }
 
 function deleteRoom(code) {
+  const room = rooms.get(code);
+  if (room) room.players.forEach(clearLeaveTimer);
   rooms.delete(code);
 }
 
@@ -110,6 +117,23 @@ function findPlayerByToken(room, token) {
   return room.players.find((p) => p.token === token) || null;
 }
 
+// "  Alex  Smith " and "alex smith" count as the same name.
+function nameKey(name) {
+  return String(name).trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function nameTaken(room, name) {
+  const key = nameKey(name);
+  return room.players.some((p) => nameKey(p.name) === key);
+}
+
+// A player whose last device disconnected may have a pending removal (see index.js).
+function clearLeaveTimer(player) {
+  if (!player.leaveTimer) return;
+  clearTimeout(player.leaveTimer);
+  player.leaveTimer = null;
+}
+
 // `soundIds` is the list of sound files the server found. When there are
 // none, players can still join without a sound.
 function joinPlayer(room, { name, color, sound, token }, soundIds = []) {
@@ -119,6 +143,8 @@ function joinPlayer(room, { name, color, sound, token }, soundIds = []) {
 
   name = String(name || "").trim().slice(0, MAX_NAME_LENGTH);
   if (!name) return { error: "Please enter a name." };
+  if (nameKey(name) === "host") return { error: "That name is reserved." }; // host chat uses it
+  if (nameTaken(room, name)) return { error: "That name is already taken." };
   if (!PALETTE.includes(color)) return { error: "Please pick a color." };
   if (takenColors(room).includes(color)) return { error: "That color is already taken." };
   if (soundIds.length) {
@@ -139,6 +165,7 @@ function joinPlayer(room, { name, color, sound, token }, soundIds = []) {
     sound,
     slot,
     sockets: 0,
+    leaveTimer: null,
     lastBuzzAt: 0,
   };
   room.players.push(player);
@@ -147,11 +174,13 @@ function joinPlayer(room, { name, color, sound, token }, soundIds = []) {
   return { player, rejoined: false };
 }
 
-function removePlayer(room, playerId) {
+// `how` finishes the feed line: "was removed" for kicks, "left" for players who go.
+function removePlayer(room, playerId, how = "was removed") {
   const player = room.players.find((p) => p.id === playerId);
   if (!player) return null;
+  clearLeaveTimer(player);
   room.players = room.players.filter((p) => p.id !== playerId);
-  addEvent(room, `${player.name} was removed`);
+  addEvent(room, `${player.name} ${how}`);
   return player;
 }
 
@@ -178,15 +207,43 @@ function addEvent(room, text) {
   return pushFeed(room, { type: "event", text, at: Date.now() });
 }
 
+// ---------- chat ----------
+// Chat lines share the feed with buzzes, but never count towards buzz order.
+
+function addChat(room, { from, playerId, name, color, text }, now = Date.now()) {
+  text = String(text || "").trim().slice(0, MAX_CHAT_LENGTH);
+  if (!text) return { error: "Message is empty." };
+
+  // One message per CHAT_COOLDOWN_MS per sender.
+  if (from === "host") {
+    if (now - (room.hostLastChatAt || 0) < CHAT_COOLDOWN_MS) return { error: "Slow down." };
+    room.hostLastChatAt = now;
+  } else {
+    const player = room.players.find((p) => p.id === playerId);
+    if (!player) return { error: "Not in a room." };
+    if (now - (player.lastChatAt || 0) < CHAT_COOLDOWN_MS) return { error: "Slow down." };
+    player.lastChatAt = now;
+  }
+
+  const entry =
+    from === "host"
+      ? { type: "chat", from: "host", name, color: null, text, at: now }
+      : { type: "chat", from: "player", playerId, name, color, text, at: now };
+  pushFeed(room, entry);
+  return { ok: true };
+}
+
 // ---------- buzzing ----------
 
 function arm(room) {
+  room.rearmAt = null;
   if (room.armed) return;
   room.armed = true;
   addEvent(room, "Buzzers armed");
 }
 
 function lock(room, reason = "Buzzers locked") {
+  room.rearmAt = null; // locking also cancels a pending re-arm
   if (!room.armed) return;
   room.armed = false;
   addEvent(room, reason);
@@ -226,6 +283,8 @@ function resetRound(room) {
   room.feed = [];
   room.feedEpoch += 1;
   room.firstBuzzAt = null;
+  room.judgedFirstAt = null;
+  room.rearmAt = null;
   addEvent(room, `Round ${room.round}`);
 }
 
@@ -233,6 +292,51 @@ function clearFeed(room) {
   room.feed = [];
   room.feedEpoch += 1;
   room.firstBuzzAt = null;
+  room.judgedFirstAt = null;
+  room.rearmAt = null;
+}
+
+// ---------- judging ----------
+// The host marks the first buzz correct (buzzers stay locked) or wrong
+// (the buzz order starts over and buzzers re-arm once the WRONG popup on the
+// game screen has gone, REARM_DELAY_MS later).
+
+function judge(room, verdict, now = Date.now()) {
+  if (verdict !== "correct" && verdict !== "wrong") return { error: "Unknown verdict." };
+  if (room.firstBuzzAt === null) return { error: "Nobody has buzzed in." };
+  if (room.judgedFirstAt === room.firstBuzzAt) return { error: "Already judged." };
+
+  const first = room.feed.find((e) => e.type === "buzz" && e.isFirst && e.at === room.firstBuzzAt);
+  if (!first) return { error: "Nobody has buzzed in." };
+  const { name, color, slot } = first;
+
+  if (verdict === "correct") {
+    room.armed = false;
+    room.judgedFirstAt = room.firstBuzzAt;
+    pushFeed(room, { type: "event", text: `${name} — correct`, verdict, at: Date.now() });
+  } else {
+    // Clients restart the buzz order after an entry with resetsOrder.
+    pushFeed(room, {
+      type: "event",
+      text: `${name} — wrong`,
+      verdict,
+      resetsOrder: true,
+      at: Date.now(),
+    });
+    room.firstBuzzAt = null;
+    room.armed = false;
+    room.rearmAt = now + REARM_DELAY_MS;
+  }
+  return { ok: true, verdict, player: { name, color, slot } };
+}
+
+// Called on an interval. Returns true if the buzzers were just re-armed.
+function checkRearm(room, now = Date.now()) {
+  if (room.rearmAt === null || now < room.rearmAt) return false;
+  room.rearmAt = null;
+  room.armed = true;
+  addEvent(room, "Buzzers re-armed");
+  return true;
 }
 
 // ---------- timer ----------
@@ -307,6 +411,8 @@ function publicState(room, now = Date.now()) {
     })),
     feed: room.feed,
     feedEpoch: room.feedEpoch,
+    judged: room.firstBuzzAt !== null && room.judgedFirstAt === room.firstBuzzAt,
+    rearming: room.rearmAt !== null,
     timer: {
       durationMs: room.timer.durationMs,
       remainingMs: timerRemaining(room, now),
@@ -329,12 +435,17 @@ module.exports = {
   nextFreeSlot,
   joinPlayer,
   removePlayer,
+  clearLeaveTimer,
   setMaxBuzzers,
   arm,
   lock,
   buzz,
   resetRound,
   clearFeed,
+  judge,
+  checkRearm,
+  REARM_DELAY_MS,
+  addChat,
   timerSet,
   timerStart,
   timerPause,

@@ -32,9 +32,16 @@ function loadSounds() {
     }));
 }
 
-function findTimerEndUrl() {
-  const file = readDir(SOUNDS_DIR).find((f) => /^timer-end\.(mp3|wav|ogg|m4a)$/i.test(f));
+// Finds public/sounds/<base>.(mp3|wav|ogg|m4a), or null if there isn't one.
+function findSfxUrl(base) {
+  const file = readDir(SOUNDS_DIR).find(
+    (f) => AUDIO_EXT.test(f) && f.replace(AUDIO_EXT, "").toLowerCase() === base.toLowerCase()
+  );
   return file ? `sounds/${encodeURIComponent(file)}` : null;
 }
 
-module.exports = { loadSounds, findTimerEndUrl, BUZZERS_DIR };
+function findTimerEndUrl() {
+  return findSfxUrl("timer-end");
+}
+
+module.exports = { loadSounds, findTimerEndUrl, findSfxUrl, BUZZERS_DIR };

@@ -10,6 +10,9 @@
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
+    <link rel="icon" href="favicon.ico" sizes="48x48" />
+    <link rel="icon" type="image/png" href="favicon-32.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <link rel="stylesheet" href="css/styles.css" />
   </head>
   <body class="page-host">
@@ -31,7 +34,7 @@
           <h2 class="box-title">buzzers</h2>
           <button type="button" class="btn arm-btn" id="arm-btn">arm</button>
           <button type="button" class="btn btn-block" id="next-round">next round</button>
-          <p class="dim small"><kbd>space</kbd> arm/lock · <kbd>n</kbd> next round · <kbd>t</kbd> timer</p>
+          <p class="dim small"><kbd>space</kbd> arm/lock · <kbd>n</kbd> next round · <kbd>t</kbd> timer · <kbd>c</kbd> correct · <kbd>w</kbd> wrong</p>
         </section>
 
         <!-- Timer -->
@@ -86,6 +89,10 @@
         <div class="first-line" id="first-line">waiting<span class="cursor">▌</span></div>
         <ol class="order-list" id="order-list"></ol>
         <ol class="feed" id="feed"></ol>
+        <form class="chat-form" id="chat-form" autocomplete="off">
+          <input type="text" class="input grow" id="chat-input" maxlength="200" placeholder="say something…" aria-label="Chat message" />
+          <button type="submit" class="btn btn-sm">send</button>
+        </form>
       </section>
     </main>
 
