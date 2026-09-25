@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="theme-color" content="#0b0b0b" />
+    <title>buzzer · buzz</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body class="page-play">
+    <header class="play-top">
+      <div class="play-id">
+        <span class="dot" id="my-dot"></span>
+        <span class="name" id="my-name">…</span>
+        <span class="dim small" id="my-slot"></span>
+      </div>
+      <div class="play-meta">
+        <span class="play-timer" id="timer-display">00:30</span>
+        <button type="button" class="btn btn-sm" id="leave-btn">leave</button>
+      </div>
+    </header>
+
+    <main class="play-main">
+      <button type="button" class="pad locked" id="buzzer" aria-label="Buzzer">
+        <span class="pad-label" id="buzzer-label">LOCKED</span>
+      </button>
+      <p class="play-status" id="play-status">waiting for the host to arm the buzzers</p>
+    </main>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/play.js"></script>
+  </body>
+</html>

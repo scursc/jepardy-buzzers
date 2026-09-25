@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>buzz</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body class="page-home">
+    <main class="shell">
+      <h1 class="title">buzz<span class="cursor" aria-hidden="true">▌</span></h1>
+      <p class="subtitle">local buzzer system · one phone, one buzzer</p>
+
+      <hr class="rule" />
+
+      <ul class="menu">
+        <li>
+          <button type="button" class="menu-item" id="create-toggle" aria-expanded="false" aria-controls="create-panel">
+            create room <span class="menu-hint">host a game</span>
+          </button>
+          <div class="menu-panel" id="create-panel" hidden>
+            <div class="field">
+              <span class="field-label">buzzers</span>
+              <div class="stepper" id="stepper">
+                <button type="button" class="btn" data-step="-1" aria-label="Fewer buzzers">-</button>
+                <output id="buzzer-count" class="stepper-value">04</output>
+                <button type="button" class="btn" data-step="1" aria-label="More buzzers">+</button>
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary btn-block" id="create-btn">create</button>
+          </div>
+        </li>
+        <li>
+          <a class="menu-item" href="join.html" id="join-link">
+            join room <span class="menu-hint">get a buzzer</span>
+          </a>
+        </li>
+        <li>
+          <button type="button" class="menu-item" id="watch-toggle" aria-expanded="false" aria-controls="watch-panel">
+            spectate <span class="menu-hint">big screen + sound</span>
+          </button>
+          <form class="menu-panel" id="watch-panel" autocomplete="off" hidden>
+            <div class="field">
+              <label for="watch-code">code</label>
+              <input id="watch-code" class="input code-input" maxlength="4" placeholder="ABCD" required />
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">open</button>
+          </form>
+        </li>
+      </ul>
+    </main>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/home.js"></script>
+  </body>
+</html>

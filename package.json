@@ -1,0 +1,14 @@
+{
+  "name": "jeopardy-buzzers",
+  "version": "1.0.0",
+  "description": "Multi-device buzzer system with a live host feed, timer and spectator screen.",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  }
+}

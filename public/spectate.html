@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>spectate · buzz</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body class="page-spectate">
+    <div class="sound-gate" id="sound-gate">
+      <div class="sound-gate-inner">
+        <p class="dim">$ spectate --room <span id="gate-code"></span></p>
+        <p>this screen plays the buzz sounds. your browser needs one click before it can play audio.</p>
+        <button type="button" class="btn btn-primary btn-block" id="enable-sound">enable sound</button>
+        <button type="button" class="btn btn-sm" id="skip-sound">continue without sound</button>
+      </div>
+    </div>
+
+    <header class="topbar">
+      <a href="index.html" class="prompt"><span class="scheme">buzz://</span><span class="room-code" id="room-code">····</span></a>
+      <span class="topbar-item">spectate</span>
+      <span class="topbar-item" id="round-label">round <b>1</b></span>
+      <span class="status" id="status">locked</span>
+      <span class="topbar-item hide-sm" id="join-hint"></span>
+      <div class="topbar-right">
+        <button type="button" class="btn btn-sm" id="mute-btn">sound: on</button>
+      </div>
+    </header>
+
+    <main class="spectate-grid">
+      <section class="box stage" id="stage">
+        <h2 class="box-title">stage</h2>
+        <div class="stage-label" id="stage-label">round 1</div>
+        <div class="stage-name" id="stage-name">get ready</div>
+        <div class="stage-sub" id="stage-sub"></div>
+      </section>
+
+      <aside class="spectate-side">
+        <section class="box">
+          <h2 class="box-title">timer</h2>
+          <div class="timer-display timer-xl" id="timer-display">00:30</div>
+          <div class="timer-bar" id="timer-bar" aria-hidden="true"></div>
+        </section>
+        <section class="box">
+          <h2 class="box-title">order</h2>
+          <ol class="order-list" id="order-list"></ol>
+          <p class="dim small" id="order-empty">no buzzes yet</p>
+        </section>
+        <section class="box feed-box">
+          <h2 class="box-title">feed</h2>
+          <ol class="feed" id="feed"></ol>
+        </section>
+      </aside>
+    </main>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/feed.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/spectate.js"></script>
+  </body>
+</html>

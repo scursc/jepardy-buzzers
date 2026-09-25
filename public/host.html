@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>host · buzz</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body class="page-host">
+    <header class="topbar">
+      <a href="index.html" class="prompt"><span class="scheme">buzz://</span><span class="room-code" id="room-code">····</span></a>
+      <span class="topbar-item">host</span>
+      <span class="topbar-item" id="round-label">round <b>1</b></span>
+      <span class="status" id="status">locked</span>
+      <span class="topbar-item hide-sm" id="join-hint"></span>
+      <div class="topbar-right">
+        <button type="button" class="btn btn-danger btn-sm" id="close-room">close room</button>
+      </div>
+    </header>
+
+    <main class="host-grid">
+      <div class="host-col">
+        <!-- Buzzer control -->
+        <section class="box">
+          <h2 class="box-title">buzzers</h2>
+          <button type="button" class="btn arm-btn" id="arm-btn">arm</button>
+          <button type="button" class="btn btn-block" id="next-round">next round</button>
+          <p class="dim small"><kbd>space</kbd> arm/lock · <kbd>n</kbd> next round · <kbd>t</kbd> timer</p>
+        </section>
+
+        <!-- Timer -->
+        <section class="box">
+          <h2 class="box-title">timer</h2>
+          <div class="box-actions">
+            <label class="toggle">
+              <input type="checkbox" id="auto-lock" />
+              <span class="toggle-box"></span>
+              <span>lock at 0</span>
+            </label>
+          </div>
+          <div class="timer-display" id="timer-display">00:30</div>
+          <div class="timer-bar" id="timer-bar" aria-hidden="true"></div>
+          <div class="presets" id="timer-presets">
+            <button type="button" class="btn btn-sm" data-seconds="5">5s</button>
+            <button type="button" class="btn btn-sm" data-seconds="10">10s</button>
+            <button type="button" class="btn btn-sm" data-seconds="15">15s</button>
+            <button type="button" class="btn btn-sm" data-seconds="30">30s</button>
+            <button type="button" class="btn btn-sm" data-seconds="60">60s</button>
+          </div>
+          <form class="row" id="timer-form">
+            <input type="number" class="input grow" id="timer-seconds" min="1" max="3600" placeholder="custom seconds" />
+            <button type="submit" class="btn">set</button>
+          </form>
+          <div class="row">
+            <button type="button" class="btn btn-amber" id="timer-toggle">start</button>
+            <button type="button" class="btn" id="timer-reset">reset</button>
+          </div>
+        </section>
+
+        <!-- Players -->
+        <section class="box">
+          <h2 class="box-title">players</h2>
+          <div class="box-actions">
+            <div class="stepper" id="max-stepper" title="Number of buzzers">
+              <button type="button" class="btn btn-sm" data-step="-1" aria-label="Fewer buzzers">-</button>
+              <output class="stepper-value small" id="max-buzzers">4</output>
+              <button type="button" class="btn btn-sm" data-step="1" aria-label="More buzzers">+</button>
+            </div>
+          </div>
+          <ul class="slot-list" id="slot-list"></ul>
+        </section>
+      </div>
+
+      <!-- Feed -->
+      <section class="box feed-box">
+        <h2 class="box-title">live feed</h2>
+        <div class="box-actions">
+          <button type="button" class="btn btn-sm" id="clear-feed">clear</button>
+        </div>
+        <div class="first-line" id="first-line">waiting<span class="cursor">▌</span></div>
+        <ol class="order-list" id="order-list"></ol>
+        <ol class="feed" id="feed"></ol>
+      </section>
+    </main>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/feed.js"></script>
+    <script src="js/host.js"></script>
+  </body>
+</html>
