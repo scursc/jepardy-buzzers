@@ -1,6 +1,8 @@
 # jepardy-buzzers
 buzzer system for games like Jeopardy. phones can be used as the buzzers, one person can be the host and a seporate screen is for the main view. 
 
+i "made" it as a quick solution for a problem i had so i dont know how any of it works. perhaps i will revisit it and try to rewrite it myself.
+
 vibe-coded to extreme hell.
 ## running it
 need [Node.js](https://nodejs.org) installed.
