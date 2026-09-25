@@ -4,6 +4,7 @@ const code = normalizeCode(getParam("room"));
 if (!code) location.replace("index.html");
 
 $("#room-code").textContent = code;
+$("#join-box-code").textContent = code;
 
 let state = null;
 let timerEndUrl = null;
@@ -90,7 +91,7 @@ fetch("/api/info")
     audio.load(correctUrl);
     audio.load(wrongUrl);
     const url = joinAddress(urls);
-    $("#join-hint").replaceChildren("join at ", el("b", {}, url));
+    $("#join-box-url").textContent = url;
   })
   .catch(() => {});
 

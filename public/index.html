@@ -10,9 +10,9 @@
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="icon" href="favicon.ico" sizes="48x48" />
-    <link rel="icon" type="image/png" href="favicon-32.png" sizes="32x32" />
-    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="icon" href="favicon.ico?v=2" sizes="48x48" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" sizes="32x32" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
     <link rel="stylesheet" href="css/styles.css" />
   </head>
   <body class="page-home">
@@ -22,45 +22,95 @@
 
       <hr class="rule" />
 
+      <!-- Each menu item slides its panel open; only one is open at a time. -->
       <ul class="menu">
         <li>
-          <button type="button" class="menu-item" id="create-toggle" aria-expanded="false" aria-controls="create-panel">
+          <button type="button" class="menu-item" id="create-toggle" data-panel="create" aria-expanded="false" aria-controls="create-panel">
             create room <span class="menu-hint">host a game</span>
           </button>
-          <div class="menu-panel" id="create-panel" hidden>
-            <div class="field">
-              <span class="field-label">buzzers</span>
-              <div class="stepper" id="stepper">
-                <button type="button" class="btn" data-step="-1" aria-label="Fewer buzzers">-</button>
-                <output id="buzzer-count" class="stepper-value">04</output>
-                <button type="button" class="btn" data-step="1" aria-label="More buzzers">+</button>
+          <div class="reveal" id="create-panel" inert>
+            <div class="reveal-inner">
+              <div class="menu-panel">
+                <div class="field">
+                  <span class="field-label">buzzers</span>
+                  <div class="stepper" id="stepper">
+                    <button type="button" class="btn" data-step="-1" aria-label="Fewer buzzers">-</button>
+                    <output id="buzzer-count" class="stepper-value">04</output>
+                    <button type="button" class="btn" data-step="1" aria-label="More buzzers">+</button>
+                  </div>
+                </div>
+                <button type="button" class="btn btn-primary btn-block" id="create-btn">create</button>
               </div>
             </div>
-            <button type="button" class="btn btn-primary btn-block" id="create-btn">create</button>
           </div>
         </li>
         <li>
-          <a class="menu-item" href="join.html" id="join-link">
+          <button type="button" class="menu-item" id="join-toggle" data-panel="join" aria-expanded="false" aria-controls="join-panel">
             join room <span class="menu-hint">get a buzzer</span>
-          </a>
+          </button>
+          <div class="reveal" id="join-panel" inert>
+            <div class="reveal-inner">
+              <form class="menu-panel" id="join-form" autocomplete="off">
+                <div class="field">
+                  <label for="join-code">code</label>
+                  <input id="join-code" class="input code-input" maxlength="4" placeholder="ABCD" required />
+                </div>
+                <div class="field">
+                  <label for="join-name">name</label>
+                  <input id="join-name" class="input" maxlength="20" placeholder="your name" required />
+                </div>
+                <div class="field">
+                  <span></span>
+                  <p class="join-status dim small" id="join-status" role="status">enter the room code from the host</p>
+                </div>
+
+                <!-- Colour and sound slide open once the code matches a room. -->
+                <div class="reveal" id="join-extras" inert>
+                  <div class="reveal-inner">
+                    <div class="join-extras">
+                      <div class="field field-top">
+                        <span class="field-label">colour</span>
+                        <div id="swatches" class="swatches" role="group" aria-label="Buzzer colour"></div>
+                      </div>
+                      <div class="field field-top">
+                        <span class="field-label">sound</span>
+                        <div>
+                          <ul id="sound-list" class="sound-list" aria-label="Buzz sound"></ul>
+                          <p class="dim small sound-tip">tap a sound to hear it on this device.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block" id="join-btn">join</button>
+              </form>
+            </div>
+          </div>
         </li>
         <li>
-          <button type="button" class="menu-item" id="watch-toggle" aria-expanded="false" aria-controls="watch-panel">
+          <button type="button" class="menu-item" id="watch-toggle" data-panel="watch" aria-expanded="false" aria-controls="watch-panel">
             game screen <span class="menu-hint">tv display + sound</span>
           </button>
-          <form class="menu-panel" id="watch-panel" autocomplete="off" hidden>
-            <div class="field">
-              <label for="watch-code">code</label>
-              <input id="watch-code" class="input code-input" maxlength="4" placeholder="ABCD" required />
+          <div class="reveal" id="watch-panel" inert>
+            <div class="reveal-inner">
+              <form class="menu-panel" id="watch-form" autocomplete="off">
+                <div class="field">
+                  <label for="watch-code">code</label>
+                  <input id="watch-code" class="input code-input" maxlength="4" placeholder="ABCD" required />
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">open</button>
+              </form>
             </div>
-            <button type="submit" class="btn btn-primary btn-block">open</button>
-          </form>
+          </div>
         </li>
       </ul>
     </main>
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="js/common.js"></script>
+    <script src="js/audio.js"></script>
     <script src="js/home.js"></script>
+    <script src="js/join.js"></script>
   </body>
 </html>

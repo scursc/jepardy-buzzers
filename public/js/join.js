@@ -1,6 +1,9 @@
-// Join page: room code, name, colour and buzz sound.
+// Join panel on the home page: room code, name, colour and buzz sound.
+// Colour and sound stay hidden until the code matches a room.
 
 const joinCode = $("#join-code");
+const joinStatus = $("#join-status");
+const joinExtras = $("#join-extras");
 const swatchBox = $("#swatches");
 const soundList = $("#sound-list");
 
@@ -23,21 +26,31 @@ async function playPreview(sound, row) {
   if (!played) toast("couldn't play that sound on this browser", "error");
 }
 
-// ----- pickers -----
+// ----- status line + pickers -----
 
-function hint(text, cls = "dim small") {
-  return el("p", { class: cls }, text);
+// One full-width line under the name field, e.g. "no room with that code".
+function setStatus(text, kind = "dim") {
+  joinStatus.textContent = text;
+  joinStatus.classList.toggle("dim", kind === "dim");
+  joinStatus.classList.toggle("red", kind === "red");
+  joinStatus.classList.toggle("green", kind === "green");
+}
+
+function showPickers(show) {
+  setRevealed(joinExtras, show); // from home.js
 }
 
 function renderPickers() {
   if (!peeked) return;
-  const { palette, takenColors, sounds, takenSounds, full } = peeked;
+  const { code, palette, takenColors, sounds, takenSounds, full } = peeked;
 
   if (full) {
-    swatchBox.replaceChildren(hint("this room is full", "red small"));
-    soundList.replaceChildren(el("li", { class: "sound-empty red small" }, "this room is full"));
+    setStatus(`room ${code} is full`, "red");
+    showPickers(false);
     return;
   }
+  setStatus(`room ${code} found · pick a colour and a sound`, "green");
+  showPickers(true);
 
   // Colours
   const colorTaken = new Set(takenColors);
@@ -109,16 +122,16 @@ async function peek() {
   joinCode.value = code;
   if (code.length !== 4) {
     peeked = null;
-    swatchBox.replaceChildren(hint("enter a room code first"));
-    soundList.replaceChildren(el("li", { class: "sound-empty dim small" }, "enter a room code first"));
+    setStatus("enter the room code from the host");
+    showPickers(false);
     return;
   }
   const res = await send("room:peek", { code });
   if (normalizeCode(joinCode.value) !== code) return; // user kept typing
   if (res.error) {
     peeked = null;
-    swatchBox.replaceChildren(hint(res.error.toLowerCase(), "red small"));
-    soundList.replaceChildren();
+    setStatus(res.error.toLowerCase(), "red");
+    showPickers(false);
     return;
   }
   // Only rebuild the pickers if something changed, so a tap isn't lost mid-press.
@@ -165,9 +178,10 @@ $("#join-form").addEventListener("submit", async (e) => {
 const lastName = store.get("lastName");
 if (lastName) $("#join-name").value = lastName;
 
-const presetCode = normalizeCode(getParam("room"));
-if (presetCode) {
-  joinCode.value = presetCode;
+// ?room=CODE links (home.js opens the panel for them).
+const joinLinkCode = normalizeCode(getParam("room"));
+if (joinLinkCode) {
+  joinCode.value = joinLinkCode;
   peek();
 }
 

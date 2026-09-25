@@ -523,8 +523,36 @@ input[type="number"].input {
   gap: 14px;
 }
 
-.page-join .box {
-  gap: 18px;
+/* Slide-down panels: animating grid rows from 0fr to 1fr opens to the
+   content's natural height without measuring it in JS. */
+.reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.22s ease;
+}
+.reveal.open {
+  grid-template-rows: 1fr;
+}
+.reveal-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.join-status {
+  margin: 0;
+  min-height: 1.6em;
+}
+.join-extras {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 6px 0 2px; /* room for the selected swatch's outline */
+}
+.sound-empty {
+  padding: 8px 10px;
+}
+.sound-tip {
+  margin-top: 6px;
 }
 
 /* ==========================================================================
@@ -988,6 +1016,25 @@ input[type="number"].input {
 }
 .timer-xl {
   font-size: 72px;
+}
+.join-box {
+  gap: 4px;
+}
+.join-box-code {
+  font-size: clamp(48px, 5.5vw, 88px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.18em;
+  color: var(--amber);
+}
+.join-box-url {
+  color: var(--dim);
+  font-size: clamp(14px, 1.4vw, 20px);
+  overflow-wrap: anywhere;
+}
+.join-box-url b {
+  color: var(--bright);
+  font-weight: 500;
 }
 .spectate-side .feed-box {
   flex: 1;

@@ -1,19 +1,32 @@
-// Home page: a small menu to create a room, go to the join page, or spectate.
+// Home page: create a room, join one, or open the game screen. Each menu item
+// slides its panel open (see .reveal in styles.css); only one is open at a time.
 
-function setupToggle(buttonSel, panelSel, focusSel) {
-  const button = $(buttonSel);
-  const panel = $(panelSel);
-  button.addEventListener("click", () => {
-    const open = panel.hidden;
-    panel.hidden = !open;
-    button.classList.toggle("open", open);
-    button.setAttribute("aria-expanded", String(open));
-    if (open && focusSel) $(focusSel).focus();
-  });
+// Opens/closes a .reveal panel. Closed panels are inert so their inputs can't
+// be tabbed into while hidden.
+function setRevealed(panel, open) {
+  panel.classList.toggle("open", open);
+  panel.inert = !open;
 }
 
-setupToggle("#create-toggle", "#create-panel");
-setupToggle("#watch-toggle", "#watch-panel", "#watch-code");
+const menuToggles = [...document.querySelectorAll(".menu-item[data-panel]")];
+
+function openPanel(name, { focus = true } = {}) {
+  for (const toggle of menuToggles) {
+    const panel = document.getElementById(toggle.getAttribute("aria-controls"));
+    const open = toggle.dataset.panel === name && !panel.classList.contains("open");
+    setRevealed(panel, open);
+    toggle.classList.toggle("open", open);
+    toggle.setAttribute("aria-expanded", String(open));
+    if (open && focus) {
+      const input = panel.querySelector("input:not([type=hidden]), button");
+      if (input) input.focus({ preventScroll: true });
+    }
+  }
+}
+
+for (const toggle of menuToggles) {
+  toggle.addEventListener("click", () => openPanel(toggle.dataset.panel));
+}
 
 // ----- create -----
 
@@ -40,25 +53,26 @@ $("#create-btn").addEventListener("click", async (e) => {
   location.href = `host.html?room=${res.code}`;
 });
 
-// ----- spectate -----
+// ----- game screen -----
 
 const watchCode = $("#watch-code");
 watchCode.addEventListener("input", () => (watchCode.value = normalizeCode(watchCode.value)));
 
-$("#watch-panel").addEventListener("submit", async (e) => {
+$("#watch-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const code = normalizeCode(watchCode.value);
   const res = await send("room:peek", { code });
   if (res.error) {
-    toast(res.error, "error");
+    toast(res.error.toLowerCase(), "error");
     return;
   }
   location.href = `spectate.html?room=${code}`;
 });
 
-// ?room=CODE links pass straight through to the join page.
-const presetCode = normalizeCode(getParam("room"));
-if (presetCode) {
-  $("#join-link").href = `join.html?room=${presetCode}`;
-  watchCode.value = presetCode;
+// ?room=CODE (e.g. the player page's "join again" link) opens the join panel
+// with the code filled in; join.js picks the code up from the same parameter.
+const linkedCode = normalizeCode(getParam("room"));
+if (linkedCode) {
+  watchCode.value = linkedCode;
+  openPanel("join", { focus: false });
 }

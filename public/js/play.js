@@ -2,7 +2,7 @@
 
 const code = normalizeCode(getParam("room"));
 const token = store.get(`player:${code}`);
-if (!code || !token) location.replace(`join.html${code ? `?room=${code}` : ""}`);
+if (!code || !token) location.replace(`index.html${code ? `?room=${code}` : ""}`);
 
 let me = null;
 let state = null;
@@ -50,7 +50,7 @@ function showGone(message) {
         { class: "box" },
         el("h2", { class: "box-title" }, "disconnected"),
         el("p", {}, message.toLowerCase()),
-        el("a", { class: "btn btn-primary btn-block", href: `join.html?room=${code}` }, "join again")
+        el("a", { class: "btn btn-primary btn-block", href: `index.html?room=${code}` }, "join again")
       )
     )
   );
