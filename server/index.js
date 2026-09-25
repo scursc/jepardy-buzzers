@@ -19,7 +19,16 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(express.static(path.join(__dirname, "..", "public")));
+// Icons are re-checked on every visit (cheap: unchanged files get a 304), so a
+// new favicon shows up without renaming files or versioning links in each page.
+const ICON_FILES = /\/(favicon[^/]*|apple-touch-icon\.png)$/;
+app.use(
+  express.static(path.join(__dirname, "..", "public"), {
+    setHeaders(res, filePath) {
+      if (ICON_FILES.test(filePath.replace(/\\/g, "/"))) res.setHeader("Cache-Control", "no-cache");
+    },
+  })
+);
 
 function lanAddresses() {
   const out = [];

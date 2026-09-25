@@ -5,6 +5,9 @@ if (!code) location.replace("index.html");
 
 $("#room-code").textContent = code;
 $("#join-box-code").textContent = code;
+// Show this page's own address straight away; /api/info may swap in the Wi-Fi
+// address below (only when this page was opened as localhost).
+$("#join-box-url").textContent = joinAddress([]);
 
 let state = null;
 let timerEndUrl = null;

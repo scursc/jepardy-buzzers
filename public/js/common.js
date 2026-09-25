@@ -6,7 +6,8 @@ const socket = io();
 function send(event, payload = {}) {
   return new Promise((resolve) => {
     socket.timeout(5000).emit(event, payload, (err, res) => {
-      if (err) resolve({ error: "The server didn't respond. Is it still running?" });
+      // `timeout` lets callers tell a network blip apart from a real "no" from the server.
+      if (err) resolve({ error: "The server didn't respond. Is it still running?", timeout: true });
       else resolve(res || { ok: true });
     });
   });
@@ -62,6 +63,13 @@ function el(tag, attrs = {}, ...children) {
     node.append(child instanceof Node ? child : document.createTextNode(String(child)));
   }
   return node;
+}
+
+// Opens/closes a slide-down .reveal panel (see styles.css). Closed panels are
+// inert so their inputs can't be tabbed into while hidden.
+function setRevealed(panel, open) {
+  panel.classList.toggle("open", open);
+  panel.inert = !open;
 }
 
 function formatClock(ms) {

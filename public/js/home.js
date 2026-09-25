@@ -1,13 +1,6 @@
 // Home page: create a room, join one, or open the game screen. Each menu item
 // slides its panel open (see .reveal in styles.css); only one is open at a time.
 
-// Opens/closes a .reveal panel. Closed panels are inert so their inputs can't
-// be tabbed into while hidden.
-function setRevealed(panel, open) {
-  panel.classList.toggle("open", open);
-  panel.inert = !open;
-}
-
 const menuToggles = [...document.querySelectorAll(".menu-item[data-panel]")];
 
 function openPanel(name, { focus = true } = {}) {
@@ -18,8 +11,10 @@ function openPanel(name, { focus = true } = {}) {
     toggle.classList.toggle("open", open);
     toggle.setAttribute("aria-expanded", String(open));
     if (open && focus) {
-      const input = panel.querySelector("input:not([type=hidden]), button");
-      if (input) input.focus({ preventScroll: true });
+      // A panel can mark what to focus (create room focuses its create button,
+      // so Enter creates the room instead of pressing the "-" stepper).
+      const target = panel.querySelector("[data-autofocus]") || panel.querySelector("input");
+      if (target) target.focus({ preventScroll: true });
     }
   }
 }

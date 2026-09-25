@@ -37,7 +37,12 @@ function setStatus(text, kind = "dim") {
 }
 
 function showPickers(show) {
-  setRevealed(joinExtras, show); // from home.js
+  setRevealed(joinExtras, show);
+}
+
+// The join button only works once there's a room with a free buzzer.
+function setJoinable(joinable) {
+  $("#join-btn").disabled = !joinable;
 }
 
 function renderPickers() {
@@ -47,10 +52,14 @@ function renderPickers() {
   if (full) {
     setStatus(`room ${code} is full`, "red");
     showPickers(false);
+    setJoinable(false);
+    selectedColor = null; // don't send a stale pick if a slot frees up later
+    selectedSound = null;
     return;
   }
   setStatus(`room ${code} found · pick a colour and a sound`, "green");
   showPickers(true);
+  setJoinable(true);
 
   // Colours
   const colorTaken = new Set(takenColors);
@@ -124,14 +133,18 @@ async function peek() {
     peeked = null;
     setStatus("enter the room code from the host");
     showPickers(false);
+    setJoinable(true);
     return;
   }
   const res = await send("room:peek", { code });
   if (normalizeCode(joinCode.value) !== code) return; // user kept typing
+  // A network blip keeps the pickers as they are; the next poll tries again.
+  if (res.timeout) return;
   if (res.error) {
     peeked = null;
     setStatus(res.error.toLowerCase(), "red");
     showPickers(false);
+    setJoinable(true);
     return;
   }
   // Only rebuild the pickers if something changed, so a tap isn't lost mid-press.
@@ -165,6 +178,7 @@ $("#join-form").addEventListener("submit", async (e) => {
   btn.disabled = false;
   if (res.error) {
     toast(res.error.toLowerCase(), "error");
+    peeked = null; // force a fresh render
     peek(); // someone may have just taken that colour or sound
     return;
   }
@@ -185,7 +199,10 @@ if (joinLinkCode) {
   peek();
 }
 
-// Keep taken colours/sounds fresh while the player is choosing.
+// Keep taken colours/sounds fresh while the player is choosing: only while the
+// join panel is open and a full code has been typed (this also retries after a
+// timeout or a "full" room freeing up).
 setInterval(() => {
-  if (peeked && !document.hidden) peek();
+  const panelOpen = $("#join-panel").classList.contains("open");
+  if (panelOpen && !document.hidden && normalizeCode(joinCode.value).length === 4) peek();
 }, 4000);
