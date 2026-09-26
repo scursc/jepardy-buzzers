@@ -560,6 +560,7 @@ input[type="number"].input {
    ========================================================================== */
 
 .topbar {
+  position: relative; /* the audio settings panel hangs off its bottom edge */
   display: flex;
   align-items: center;
   gap: 8px 22px;
@@ -727,13 +728,12 @@ input[type="number"].input {
 
 /* ---------- audio settings popover ---------- */
 
-.settings-wrap {
-  position: relative;
-}
+/* The panel is placed against the whole top bar (not the button), so it always
+   sits on screen, even when the top bar wraps onto two lines on phones. */
 .settings-panel {
   position: absolute;
-  top: calc(100% + 18px);
-  right: 0;
+  top: calc(100% + 14px);
+  right: 16px;
   z-index: 50;
   width: min(340px, calc(100vw - 32px));
   gap: 10px;
@@ -1230,7 +1230,8 @@ input[type="number"].input {
     padding: 24px 16px;
   }
   .page-host .feed-box {
-    position: static;
+    /* relative, not static: the box title and [clear] are positioned against it */
+    position: relative;
     max-height: 70vh;
   }
   .topbar {
